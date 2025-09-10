@@ -1,8 +1,10 @@
-import 'package:allen/feature_box.dart';
-import 'package:allen/pallet.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'Pollinationsai_services.dart';
+import 'pallet.dart';
+import 'feature_box.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,137 +15,115 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final speechToText = SpeechToText();
+  final flutterTts = FlutterTts();
   String lastWords = '';
+  final AIService aiService = AIService();
+  String? generatedContent;
+  String? generatedImageUrl;
+  bool isLoading = false;
+
   @override
   void initState() {
     super.initState();
     initSpeechToText();
+    initTextToSpeech();
   }
 
-  Future<void> initSpeechToText() async {
-    await speechToText.initialize();
-    setState(() {});
-  }
+  Future<void> initTextToSpeech() async => await flutterTts.setSharedInstance(true);
 
-   /// Each time to start a speech recognition session
-  Future<void> startListening() async {
-    await speechToText.listen(onResult: onSpeechResult);
-    setState(() {});
-  }
-  /// listen method.
-  Future<void> stopListening() async {
-    await speechToText.stop();
-    setState(() {});
-  }
-  
+  Future<void> initSpeechToText() async => await speechToText.initialize();
+
   void onSpeechResult(SpeechRecognitionResult result) {
-    setState(() {
-      lastWords = result.recognizedWords;
-    });
+    setState(() => lastWords = result.recognizedWords);
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-    speechToText.stop();
-  }
+  Future<void> startListening() async => await speechToText.listen(onResult: onSpeechResult);
 
+  Future<void> stopListening() async => await speechToText.stop();
+
+  Future<void> systemSpeak(String content) async => await flutterTts.speak(content);
+
+  Future<void> processPrompt(String prompt) async {
+    setState(() => isLoading = true);
+    try {
+      final response = await aiService.handlePrompt(prompt);
+
+      setState(() {
+        if (response.startsWith('http') || response.startsWith('data:image')) {
+          generatedImageUrl = response;
+          generatedContent = null;
+        } else {
+          generatedContent = response;
+          generatedImageUrl = null;
+        }
+      });
+
+      if (generatedContent != null) await systemSpeak(generatedContent!);
+    } catch (_) {
+      setState(() => generatedContent = "Sorry, there was an error processing your request.");
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Allen'),
-        centerTitle: true, // <-- forces center alignment on android phones
-        leading: const Icon(Icons.menu),
-      ),
+      appBar: AppBar(title: const Text('Allen'), centerTitle: true, leading: const Icon(Icons.menu)),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // virtual assistant picture
+            // Assistant avatar
             Stack(
               children: [
                 Center(
-                  child: Container(
-                    height: 120,
-                    width: 120,
-                    margin: const EdgeInsets.only(top: 4),
-                    decoration: const BoxDecoration(
-                      color: Pallete.assistantCircleColor,
-                      shape: BoxShape.circle,
-                    ),
+                  child: Container(height: 120, width: 120, margin: const EdgeInsets.only(top: 4),
+                    decoration: const BoxDecoration(color: Pallete.assistantCircleColor, shape: BoxShape.circle),
                   ),
                 ),
                 Container(
                   height: 123,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: AssetImage('assets/images/virtualAssistant.png'),
-                    ),
+                    image: DecorationImage(image: AssetImage('assets/images/virtualAssistant.png')),
                   ),
                 ),
               ],
             ),
-            // chat bubble
+            // Chat bubble
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              margin: const EdgeInsets.symmetric(
-                horizontal: 40,
-              ).copyWith(top: 30),
+              margin: const EdgeInsets.symmetric(horizontal: 40).copyWith(top: 30),
               decoration: BoxDecoration(
-                border: Border.all(color: Pallete.borderColor), // border.all
-                borderRadius: BorderRadius.circular(
-                  20,
-                ).copyWith(topLeft: const Radius.circular(0)),
+                border: Border.all(color: Pallete.borderColor),
+                borderRadius: BorderRadius.circular(20).copyWith(topLeft: const Radius.circular(0)),
               ),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10.0),
-                child: Text(
-                  'Good Morning, what task can i do for you?',
-                  style: TextStyle(
-                    fontFamily: 'Cera Pro',
-                    color: Pallete.mainFontColor,
-                    fontSize: 25,
-                  ),
-                ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10.0),
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator(color: Pallete.mainFontColor))
+                    : generatedImageUrl != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Image.network(generatedImageUrl!, fit: BoxFit.cover),
+                          )
+                        : Text(generatedContent ?? 'Good morning! What can I do for you?',
+                            style: TextStyle(fontFamily: 'Cera Pro', color: Pallete.mainFontColor, fontSize: generatedContent == null ? 25 : 18)),
               ),
             ),
+            // Features section
             Container(
               padding: const EdgeInsets.all(10),
               alignment: Alignment.centerLeft,
               margin: const EdgeInsets.only(top: 10, left: 22),
-              child: const Text(
-                'Here are a few features',
-                style: TextStyle(
-                  fontFamily: 'Cera Pro',
-                  color: Pallete.mainFontColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: const Text('Here are a few features',
+                  style: TextStyle(fontFamily: 'Cera Pro', color: Pallete.mainFontColor, fontSize: 20, fontWeight: FontWeight.bold)),
             ),
-            // features list
-            Column(
-              children: const [
-                FeatureBox(
-                  color: Pallete.firstSuggestionBoxColor,
-                  headerText: 'ChatGPT',
-                  descriptionText:
-                      'A smarter way to stay organised and informed with ChatGPT',
-                ),
-                FeatureBox(
-                  color: Pallete.secondSuggestionBoxColor,
-                  headerText: 'Dall-E',
-                  descriptionText:
-                      'Get inspired and stay creative with your personal assistant powered by Dall-E',
-                ),
-                FeatureBox(
-                  color: Pallete.thirdSuggestionBoxColor,
-                  headerText: 'Smart Voice Assistant',
-                  descriptionText:
-                      'Get the best of both worlds with a voice assistant powered by ChatGPT and Dall-E',
-                ),
+            const Column(
+              children: [
+                FeatureBox(color: Pallete.firstSuggestionBoxColor, headerText: 'AI Chat', descriptionText: 'Talk to your assistant powered by Hugging Face.'),
+                FeatureBox(color: Pallete.secondSuggestionBoxColor, headerText: 'Image Generation', descriptionText: 'Generate images with your prompts instantly.'),
+                FeatureBox(color: Pallete.thirdSuggestionBoxColor, headerText: 'Voice Assistant', descriptionText: 'Speak and listen using AI-powered assistant.'),
               ],
             ),
           ],
@@ -152,17 +132,16 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Pallete.firstSuggestionBoxColor,
         onPressed: () async {
-          if (await speechToText.hasPermission && speechToText.isNotListening) {
-            // start listening
+          if (await speechToText.hasPermission && !speechToText.isListening) {
             await startListening();
           } else if (speechToText.isListening) {
-            // stop listening
             await stopListening();
+            if (lastWords.isNotEmpty) await processPrompt(lastWords);
           } else {
-            initSpeechToText();
+            await initSpeechToText();
           }
         },
-        child: const Icon(Icons.mic),
+        child: Icon(speechToText.isListening ? Icons.stop : Icons.mic, color: speechToText.isListening ? Colors.red : null),
       ),
     );
   }

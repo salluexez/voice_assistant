@@ -3,7 +3,7 @@ import 'package:allen/pallet.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Pallete.whiteColor,
         appBarTheme: const AppBarTheme(backgroundColor: Pallete.whiteColor),
       ),
-      home: const HomePage(),
+      home: HomePage(), // StatefulWidget → no const
     );
   }
 }
