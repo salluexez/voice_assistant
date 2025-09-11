@@ -1,6 +1,6 @@
 # allen
 
-A new Flutter project.
+A new Flutter project voice_assistant using pollinationsai and DialoGPT and DeepAI
 
 ## Getting Started
 
