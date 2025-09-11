@@ -4,14 +4,15 @@ import 'package:http/http.dart' as http;
 class AIService {
   final List<Map<String, String>> _messages = [];
   static const int _timeoutSeconds = 60;
-  
+
   // Pollinations.AI - Free, no API key needed
   static const String _pollinationsBaseUrl = 'https://text.pollinations.ai';
-  static const String _pollinationsImageUrl = 'https://image.pollinations.ai/prompt';
-  
-  // Alternative APIs (no key needed)
+  static const String _pollinationsImageUrl =
+      'https://image.pollinations.ai/prompt';
+
+  // Alternative APIs
   static const String _deepaiBaseUrl = 'https://api.deepai.org/api';
-  
+
   final List<String> _placeholderImages = [
     'https://picsum.photos/512/512?random=1',
     'https://picsum.photos/512/512?random=2',
@@ -34,20 +35,17 @@ class AIService {
     _addMessage('user', prompt);
 
     try {
-      // Try Pollinations.AI first (completely free)
       final pollinationsResponse = await _tryPollinationsText(prompt);
       if (pollinationsResponse != null) {
         _addMessage('assistant', pollinationsResponse);
         return pollinationsResponse;
       }
 
-      // Try Hugging Face as fallback
       final hfResponse = await _tryHuggingFaceText(prompt);
       if (hfResponse != null) {
         _addMessage('assistant', hfResponse);
         return hfResponse;
       }
-
     } catch (e) {
       return 'Network error. Please check your internet connection.';
     }
@@ -59,14 +57,11 @@ class AIService {
     _addMessage('user', prompt);
 
     try {
-      // Try Pollinations.AI for images
       final pollinationsResponse = await _tryPollinationsImage(prompt);
       if (pollinationsResponse != null) return pollinationsResponse;
 
-      // Try other free APIs
       final deepaiResponse = await _tryDeepAIImage(prompt);
       if (deepaiResponse != null) return deepaiResponse;
-      
     } catch (e) {
       // Silent fallback to placeholder
     }
@@ -83,8 +78,11 @@ class AIService {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'messages': [
-                {'role': 'system', 'content': 'You are a helpful AI assistant.'},
-                {'role': 'user', 'content': enhancedPrompt}
+                {
+                  'role': 'system',
+                  'content': 'You are a helpful AI assistant.',
+                },
+                {'role': 'user', 'content': enhancedPrompt},
               ],
               'model': 'openai',
             }),
@@ -111,14 +109,16 @@ class AIService {
             body: jsonEncode({
               'inputs': prompt,
               'options': {'wait_for_model': true},
-              'parameters': {'max_new_tokens': 150}
+              'parameters': {'max_new_tokens': 150},
             }),
           )
           .timeout(Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data is List && data.isNotEmpty && data[0]['generated_text'] != null) {
+        if (data is List &&
+            data.isNotEmpty &&
+            data[0]['generated_text'] != null) {
           return data[0]['generated_text'].toString().trim();
         }
       }
@@ -132,12 +132,14 @@ class AIService {
     try {
       // Direct URL method - no API call needed
       final encodedPrompt = Uri.encodeComponent(prompt);
-      final imageUrl = '$_pollinationsImageUrl/$encodedPrompt?width=512&height=512&model=flux&enhance=true';
-      
+      final imageUrl =
+          '$_pollinationsImageUrl/$encodedPrompt?width=512&height=512&model=flux&enhance=true';
+
       // Test if URL works
-      final response = await http.head(Uri.parse(imageUrl))
+      final response = await http
+          .head(Uri.parse(imageUrl))
           .timeout(Duration(seconds: 10));
-      
+
       if (response.statusCode == 200) {
         return imageUrl;
       }
@@ -153,9 +155,7 @@ class AIService {
           .post(
             Uri.parse('$_deepaiBaseUrl/text2img'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'text': prompt,
-            }),
+            body: jsonEncode({'text': prompt}),
           )
           .timeout(Duration(seconds: 45));
 
@@ -173,15 +173,15 @@ class AIService {
 
   String _buildPromptWithContext(String prompt) {
     if (_messages.isEmpty) return prompt;
-    
-    final recentMessages = _messages.length > 4 
-        ? _messages.sublist(_messages.length - 4) 
+
+    final recentMessages = _messages.length > 4
+        ? _messages.sublist(_messages.length - 4)
         : _messages;
-    
+
     final context = recentMessages
         .map((msg) => '${msg['role']}: ${msg['content']}')
         .join('\n');
-    
+
     return '$context\nuser: $prompt';
   }
 
@@ -211,7 +211,6 @@ class AIService {
     if (_messages.length > 8) _messages.removeAt(0);
   }
 
-  // Utility methods
   Future<bool> isServiceAvailable() async {
     try {
       final response = await http
@@ -227,9 +226,9 @@ class AIService {
     _messages.clear();
   }
 
-  // Get direct image URL (for Pollinations)
   String getDirectImageUrl(String prompt, {int width = 512, int height = 512}) {
     final encodedPrompt = Uri.encodeComponent(prompt);
     return '$_pollinationsImageUrl/$encodedPrompt?width=$width&height=$height&model=flux&enhance=true&nologo=true';
   }
 }
+

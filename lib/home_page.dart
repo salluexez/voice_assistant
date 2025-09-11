@@ -1,8 +1,9 @@
+import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'Pollinationsai_services.dart';
+import 'pollinationsai_services.dart';
 import 'pallet.dart';
 import 'feature_box.dart';
 
@@ -21,6 +22,8 @@ class _HomePageState extends State<HomePage> {
   String? generatedContent;
   String? generatedImageUrl;
   bool isLoading = false;
+  int start = 200;
+  int delay = 200;
 
   @override
   void initState() {
@@ -69,79 +72,104 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Allen'), centerTitle: true, leading: const Icon(Icons.menu)),
+      appBar: AppBar(title: BounceInDown(child: const Text('Allen')),
+       centerTitle: true,
+       leading: const Icon(Icons.menu)),
       body: SingleChildScrollView(
         child: Column(
           children: [
             // Assistant avatar
-            Stack(
-              children: [
-                Center(
-                  child: Container(height: 120, width: 120, margin: const EdgeInsets.only(top: 4),
-                    decoration: const BoxDecoration(color: Pallete.assistantCircleColor, shape: BoxShape.circle),
+            ZoomIn(
+              child: Stack(
+                children: [
+                  Center(
+                    child: Container(height: 120, width: 120, margin: const EdgeInsets.only(top: 4),
+                      decoration: const BoxDecoration(color: Pallete.assistantCircleColor, shape: BoxShape.circle),
+                    ),
                   ),
-                ),
-                Container(
-                  height: 123,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: DecorationImage(image: AssetImage('assets/images/virtualAssistant.png')),
+                  Container(
+                    height: 123,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      image: DecorationImage(image: AssetImage('assets/images/virtualAssistant.png')),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             // Chat bubble
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              margin: const EdgeInsets.symmetric(horizontal: 40).copyWith(top: 30),
-              decoration: BoxDecoration(
-                border: Border.all(color: Pallete.borderColor),
-                borderRadius: BorderRadius.circular(20).copyWith(topLeft: const Radius.circular(0)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10.0),
-                child: isLoading
-                    ? const Center(child: CircularProgressIndicator(color: Pallete.mainFontColor))
-                    : generatedImageUrl != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Image.network(generatedImageUrl!, fit: BoxFit.cover),
-                          )
-                        : Text(generatedContent ?? 'Good morning! What can I do for you?',
-                            style: TextStyle(fontFamily: 'Cera Pro', color: Pallete.mainFontColor, fontSize: generatedContent == null ? 25 : 18)),
+            FadeInRight(
+              child: Visibility(
+                visible: generatedImageUrl == null,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  margin: const EdgeInsets.symmetric(horizontal: 40).copyWith(top: 30),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Pallete.borderColor),
+                    borderRadius: BorderRadius.circular(20).copyWith(topLeft: const Radius.circular(0)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10.0),
+                    child: isLoading
+                        ? const Center(child: CircularProgressIndicator(color: Pallete.mainFontColor))
+                        : generatedImageUrl != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: Image.network(generatedImageUrl!, fit: BoxFit.cover),
+                              )
+                            : Text(generatedContent ?? 'Good morning! What can I do for you?',
+                                style: TextStyle(fontFamily: 'Cera Pro', color: Pallete.mainFontColor, fontSize: generatedContent == null ? 25 : 18)),
+                  ),
+                ),
               ),
             ),
             // Features section
-            Container(
-              padding: const EdgeInsets.all(10),
-              alignment: Alignment.centerLeft,
-              margin: const EdgeInsets.only(top: 10, left: 22),
-              child: const Text('Here are a few features',
-                  style: TextStyle(fontFamily: 'Cera Pro', color: Pallete.mainFontColor, fontSize: 20, fontWeight: FontWeight.bold)),
+            if (generatedImageUrl != null) Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: ClipRRect(borderRadius: BorderRadius.circular(20),
+               child: Image.network(generatedImageUrl!)),
             ),
-            const Column(
-              children: [
-                FeatureBox(color: Pallete.firstSuggestionBoxColor, headerText: 'AI Chat', descriptionText: 'Talk to your assistant powered by Hugging Face.'),
-                FeatureBox(color: Pallete.secondSuggestionBoxColor, headerText: 'Image Generation', descriptionText: 'Generate images with your prompts instantly.'),
-                FeatureBox(color: Pallete.thirdSuggestionBoxColor, headerText: 'Voice Assistant', descriptionText: 'Speak and listen using AI-powered assistant.'),
-              ],
+            SlideInLeft(
+              child: Visibility(
+                visible: generatedContent == null && generatedImageUrl == null,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  alignment: Alignment.centerLeft,
+                  margin: const EdgeInsets.only(top: 10, left: 22),
+                  child: const Text('Here are a few features',
+                      style: TextStyle(fontFamily: 'Cera Pro', color: Pallete.mainFontColor, fontSize: 20, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ),
+            Visibility(
+              visible: generatedContent == null && generatedImageUrl == null,
+              child:  Column(
+                children: [
+                  SlideInLeft(delay: Duration(milliseconds: start),child: const FeatureBox(color: Pallete.firstSuggestionBoxColor, headerText: 'AI Chat', descriptionText: 'Talk to your assistant powered by Hugging Face.')),
+                  SlideInLeft(delay: Duration(milliseconds: start + delay),child: const FeatureBox(color: Pallete.secondSuggestionBoxColor, headerText: 'Image Generation', descriptionText: 'Generate images with your prompts instantly.')),
+                  SlideInLeft(delay: Duration(milliseconds: start + 2 * delay),child: const FeatureBox(color: Pallete.thirdSuggestionBoxColor, headerText: 'Voice Assistant', descriptionText: 'Get the best of both worlds with a voice assistant powered by Dall-E and ChatGPT')),
+                ],
+              ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Pallete.firstSuggestionBoxColor,
-        onPressed: () async {
-          if (await speechToText.hasPermission && !speechToText.isListening) {
-            await startListening();
-          } else if (speechToText.isListening) {
-            await stopListening();
-            if (lastWords.isNotEmpty) await processPrompt(lastWords);
-          } else {
-            await initSpeechToText();
-          }
-        },
-        child: Icon(speechToText.isListening ? Icons.stop : Icons.mic, color: speechToText.isListening ? Colors.red : null),
+      floatingActionButton: ZoomIn(
+        delay: Duration(milliseconds: start + 3 * delay),
+        child: FloatingActionButton(
+          backgroundColor: Pallete.firstSuggestionBoxColor,
+          onPressed: () async {
+            if (await speechToText.hasPermission && !speechToText.isListening) {
+              await startListening();
+            } else if (speechToText.isListening) {
+              await stopListening();
+              if (lastWords.isNotEmpty) await processPrompt(lastWords);
+            } else {
+              await initSpeechToText();
+            }
+          },
+          child: Icon(speechToText.isListening ? Icons.stop : Icons.mic, color: speechToText.isListening ? Colors.red : null),
+        ),
       ),
     );
   }
